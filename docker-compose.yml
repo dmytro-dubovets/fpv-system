@@ -1,0 +1,79 @@
+services:
+  auth-db:
+    image: postgres:15
+    container_name: auth-db
+    environment:
+      POSTGRES_DB: fpv_auth
+      POSTGRES_USER: fpv_user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5438:5432"
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "fpv_user", "-d", "fpv_auth" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  resource-db:
+    image: postgres:15
+    container_name: resource-db
+    environment:
+      POSTGRES_DB: fpv_resource
+      POSTGRES_USER: fpv_user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "fpv_user", "-d", "fpv_resource" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  auth-server:
+    build: ./fpv-authorization-server
+    container_name: auth-server
+    ports:
+      - "9000:9000"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://auth-db:5432/fpv_auth
+      SPRING_DATASOURCE_USERNAME: fpv_user
+      SPRING_DATASOURCE_PASSWORD: password
+      # ЦЕ ВАЖЛИВО: Даємо Java 30 секунд на спроби підключення до бази
+      SPRING_DATASOURCE_HIKARI_INITIALIZATION_FAIL_TIMEOUT: 30000
+    depends_on:
+      auth-db:
+        condition: service_healthy
+
+  resource-server:
+    build: ./fpv-resource-server
+    container_name: resource-server
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://resource-db:5432/fpv_resource
+      SPRING_DATASOURCE_USERNAME: fpv_user
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_DATASOURCE_HIKARI_INITIALIZATION_FAIL_TIMEOUT: 30000
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://auth-server:9000
+    depends_on:
+      auth-server:
+        condition: service_started
+      resource-db:
+        condition: service_healthy
+  fpv-bot:
+    build: ./fpv-telegram-bot-server # шлях до папки з ботом
+    container_name: fpv-bot
+    depends_on:
+      auth-server:
+        condition: service_started
+      resource-server:
+        condition: service_started
+    environment:
+      # ЗВЕРНИ УВАГУ: використовуємо назви контейнерів замість localhost
+      SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_CUSTOM_PROVIDER_TOKEN_URI: http://auth-server:9000/oauth2/token
+      API_RESOURCE_SERVER_URL: http://resource-server:8080
+      TELEGRAM_BOT_NAME: "fpvreport_bot"
+      TELEGRAM_BOT_TOKEN: "8647065819:AAEZSv6hfHEODWxiYGvHuK7s8jyPlzTROW4"
+      # Якщо потрібно перевизначити інші налаштування:
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_FPV_BOT_CLIENT_ID: fpv-client
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_FPV_BOT_CLIENT_SECRET: fpv-secret
