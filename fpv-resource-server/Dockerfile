@@ -1,15 +1,14 @@
-# Використовуємо легкий образ Java
-FROM eclipse-temurin:21-jre-alpine
-
-# Вказуємо робочу директорію всередині контейнера
+# Етап 1: Збірка (Maven)
+FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
 WORKDIR /app
+COPY pom.xml .
+COPY src ./src
+RUN mvn clean package -DskipTests
 
-# Копіюємо зібраний jar-файл з папки target (після mvn clean package)
-# Перевір, щоб назва файлу збігалася з тією, що в папці target!
-COPY target/fpv-resource-server-*.jar app.jar
-
-# Відкриваємо порт 8080
+# Етап 2: Запуск (JRE)
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
+# Порт для Resource Server
 EXPOSE 8080
-
-# Команда для запуску
 ENTRYPOINT ["java", "-jar", "app.jar"]

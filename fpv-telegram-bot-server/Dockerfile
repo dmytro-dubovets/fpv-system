@@ -1,18 +1,13 @@
-# Етап 1: Використовуємо легкий образ JRE для запуску
-FROM eclipse-temurin:21-jre-alpine
-
-# Встановлюємо робочу директорію всередині контейнера
+# Етап 1: Збірка (Maven)
+FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
 WORKDIR /app
+COPY pom.xml .
+COPY src ./src
+RUN mvn clean package -DskipTests
 
-# Додаємо корисний пакет для перевірки мережі (допомагає при дебазі зв'язку з серверами)
-RUN apk add --no-cache curl
-
-# Копіюємо JAR-файл, який Maven згенерував у папці target
-# Використовуємо wildcard (*), щоб не залежати від точної версії в назві
-COPY target/*.jar app.jar
-
-# Налаштування JVM для Mac M4 та контейнерів (оптимізація пам'яті)
-ENV JAVA_OPTS="-Xms256m -Xmx512m -XX:+UseG1GC"
-
-# Запуск бота з прокиданням змінних оточення
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+# Етап 2: Запуск (JRE)
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
+# Бот портів зазвичай не потребує, але можна лишити 8081 або прибрати EXPOSE
+ENTRYPOINT ["java", "-jar", "app.jar"]
