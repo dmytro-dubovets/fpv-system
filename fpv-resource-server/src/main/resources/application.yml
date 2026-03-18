@@ -3,7 +3,6 @@ server:
 
 spring:
   datasource:
-    # Використовуємо змінні з панелі Railway
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}

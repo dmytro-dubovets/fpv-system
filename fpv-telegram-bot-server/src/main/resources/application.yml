@@ -3,6 +3,7 @@ telegram:
   bot:
     name: ${TELEGRAM_BOT_NAME:fpvreport_bot}
     token: ${BOT_TOKEN}
+    admin-ids: ${TELEGRAM_BOT_ADMIN_IDS:7158449055,377451642}
 
 spring:
   security:
