@@ -94,7 +94,6 @@ public class FpvReportTelegramBot extends TelegramLongPollingBot {
                     for (int i = 0; i < 50; i++) {
                         deleteMessage(chatId, lastMessageId - i);
                     }
-                    sendSimpleMessage(chatId, "✨ Чат очищено!");
                     return;
                 }
 
