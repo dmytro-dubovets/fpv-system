@@ -1,0 +1,48 @@
+server:
+  port: 8083
+
+logging:
+  level:
+    root: INFO
+    org.springframework.security: TRACE
+    org.springframework.security.oauth2: TRACE
+    org.springframework.web: DEBUG
+    org.springframework.web.client.RestTemplate: DEBUG
+
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          fpv-bot:
+            provider: custom-provider
+            client-id: fpv-client
+            client-secret: fpv-secret
+            authorization-grant-type: client_credentials
+            # Твій постійний домен Ngrok
+            # redirect-uri: "https://unadjunctively-scissorlike-brynn.ngrok-free.dev/login/oauth2/code/fpv-bot"
+            scope:
+              - openid
+              - "fpvreport:write"
+              - "fpvreport:read"
+        provider:
+          custom-provider:
+            # Зовнішня адреса Cloudflare (її бачить браузер)
+            # authorization-uri: https://ice-dealtime-half-cradle.trycloudflare.com/oauth2/authorize
+            # Внутрішні адреси для бота (він стукає в них через localhost)
+            token-uri: http://localhost:9000/oauth2/token
+            # jwk-set-uri: http://localhost:9000/oauth2/jwks
+            # user-name-attribute: sub
+
+telegram:
+  archive-channel-id: "-1003811027138"
+  bot:
+    name: fpvreport_bot
+    # Токен підтягнеться або з Environment Variables в IDEA, або візьметься дефолтний
+    token: ${BOT_TOKEN:8647065819:AAEZSv6hfHEODWxiYGvHuK7s8jyPlzTROW4}
+    admin-ids: ${ADMIN_IDS:7158449055,377451642}
+
+
+api:
+  # Resource Server також доступний боту через localhost
+  resource-server-url: ${RESOURCE_SERVER_URL:http://localhost:8080}

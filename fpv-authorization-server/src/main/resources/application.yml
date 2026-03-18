@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    # Використовуємо змінні, які ми вказали в Railway
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  security:
+    oauth2:
+      authorizationserver:
+        # Це дозволить Auth Server самому знати своє ім'я в мережі Railway
+        issuer: http://auth-server.railway.internal:9000

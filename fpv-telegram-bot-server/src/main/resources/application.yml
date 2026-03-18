@@ -1,0 +1,17 @@
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          fpv-bot:
+            provider: custom-provider
+            client-id: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_FPV_BOT_CLIENT_ID:fpv-client}
+            client-secret: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_FPV_BOT_CLIENT_SECRET:fpv-secret}
+            authorization-grant-type: client_credentials
+            scope:
+              - openid
+              - "fpvreport:write"
+              - "fpvreport:read"
+        provider:
+          custom-provider:
+            token-uri: http://auth-server.railway.internal:9000/oauth2/token
