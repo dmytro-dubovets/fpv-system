@@ -3,9 +3,9 @@ server:
 
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: jdbc:postgresql://postgres.railway.internal:5432/railway
+    username: postgres
+    password: hiRNqCJxtMbYkiOBZwKpOmHMKVeBgmkA
     driver-class-name: org.postgresql.Driver
 
   security:
