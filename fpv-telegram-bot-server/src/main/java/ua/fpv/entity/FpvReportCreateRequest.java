@@ -22,6 +22,9 @@ import java.time.LocalDateTime;
 @Builder
 public class FpvReportCreateRequest {
 
+    @NotNull(message = "Pilot ID is required!")
+    private Long fpvPilotId;
+
     @Valid
     @NotNull(message = "FPVDrone object can't be null!")
     private FpvDroneRequest fpvDrone;
