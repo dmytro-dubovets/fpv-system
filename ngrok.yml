@@ -1,7 +1,0 @@
-version: "1"
-authtoken: 3B1LPgxDpf74RqX7byM5x0MyEf2_7eEXo9f8s31HKQFiUUaDm
-tunnels:
-  bot-tunnel:
-    proto: http
-    addr: 127.0.0.1:8083  # Б'ємо точно в ціль
-    domain: unadjunctively-scissorlike-brynn.ngrok-free.dev
