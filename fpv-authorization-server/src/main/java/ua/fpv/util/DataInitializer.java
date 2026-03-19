@@ -59,6 +59,23 @@ public class DataInitializer {
 
         registeredClientRepository.save(client);
 
+            FpvPilot admin = new FpvPilot();
+
+            if (fpvPilotRepository.findByUsername("fpv-client").isEmpty()) {
+                log.info("Data Initializer - fpv-client: {}", client.getClientId());
+                admin.setUsername("fpv-client");
+                admin.setFirstname("John");
+                admin.setLastname("Doe");
+                admin.setPassword(passwordEncoder.encode("admin"));
+                admin.setClientId(client.getClientId());
+                admin.addAuthority("fpvreport:read");
+                admin.addAuthority("fpvreport:write");
+                admin.addAuthority("user:read");
+                admin.addAuthority("user:write");
+
+                fpvPilotRepository.save(admin);
+            }
+
         }
     }
 }
