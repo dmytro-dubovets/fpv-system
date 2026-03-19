@@ -18,9 +18,10 @@ CREATE TABLE IF NOT EXISTS fpv_pilot (
 CREATE TABLE IF NOT EXISTS fpv_report (
                                           fpv_report_id BIGSERIAL PRIMARY KEY,
                                           fpv_drone_id BIGINT UNIQUE REFERENCES fpv_drone(fpv_drone_id) ON DELETE CASCADE,
+    fpv_pilot_id BIGINT REFERENCES fpv_pilot(fpv_pilot_id), -- ДОДАНО
     date_time_flight TIMESTAMP,
-    created_by_username VARCHAR(255) NOT NULL, -- Заповнюється через @CreatedBy
-    created_at TIMESTAMP,                      -- Заповнюється через @CreatedDate
+    created_by_username VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP,
     is_lost_fpv_due_to_reb BOOLEAN DEFAULT FALSE,
     is_on_target_fpv BOOLEAN DEFAULT FALSE,
     coordinates_mgrs VARCHAR(50),
