@@ -28,18 +28,18 @@ create table if not exists fpv_drone (
                                          fpv_model varchar(50)
 );
 
-create table if not exists fpv_report (
-                                          fpv_report_id bigserial primary key,
-                                          fpv_drone_id bigint unique,
-                                          date_time_flight timestamp,
-                                          fpv_pilot_id bigint not null,
-                                          is_lost_fpv_due_to_reb boolean,
-                                          is_on_target_fpv boolean,
-                                          coordinates_mgrs varchar(100),
-                                          additional_info text,
-                                          foreign key (fpv_pilot_id) references fpv_pilot(fpv_pilot_id),
-                                          foreign key (fpv_drone_id) references fpv_drone(fpv_drone_id)
-);
+CREATE TABLE IF NOT EXISTS fpv_report (
+                                          fpv_report_id BIGSERIAL PRIMARY KEY,
+                                          fpv_drone_id BIGINT UNIQUE REFERENCES fpv_drone(fpv_drone_id),
+    fpv_pilot_id BIGINT NOT NULL REFERENCES fpv_pilot(fpv_pilot_id),
+    date_time_flight TIMESTAMP,
+    created_by_username VARCHAR(255),
+    created_at TIMESTAMP,
+    is_lost_fpv_due_to_reb BOOLEAN DEFAULT FALSE,
+    is_on_target_fpv BOOLEAN DEFAULT FALSE,
+    coordinates_mgrs VARCHAR(50),
+    additional_info TEXT
+    );
 
 CREATE TABLE IF NOT EXISTS refresh_token (
                                              id BIGSERIAL PRIMARY KEY,
