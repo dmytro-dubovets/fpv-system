@@ -139,9 +139,12 @@ public class FpvReportTelegramBot extends TelegramLongPollingBot {
                 sendAndTrackMessage(chatId, "Введіть додаткову інформацію (деталі вильоту):", session);
             }
             case AWAITING_ADDITIONAL_INFO -> {
+                // Зберігаємо текст опису
                 session.getReportRequest().setAdditionalInfo(text);
+
+                // ПЕРЕХОДИМО ДО РЕЗУЛЬТАТУ (Влучання/Промах)
                 session.setState(BotState.AWAITING_RESULT);
-                sendAndTrackInline(chatId, "Який результат вильоту?", getHitOrMissKeyboard(), session);
+                sendAndTrackInline(chatId, "🎯 Який результат вильоту?", getHitOrMissKeyboard(), session);
             }
         }
     }
@@ -151,11 +154,11 @@ public class FpvReportTelegramBot extends TelegramLongPollingBot {
         int messageId = update.getCallbackQuery().getMessage().getMessageId();
         String data = update.getCallbackQuery().getData();
 
-        // Видаляємо повідомлення з кнопками одразу після кліку для чистоти
         deleteMessage(chatId, messageId);
 
         if (session.getState() == BotState.AWAITING_FPV_DRONE) {
             session.getReportRequest().getFpvDrone().setFpvModel(FpvDrone.FpvModel.valueOf(data));
+            // ПІСЛЯ МОДЕЛІ — ПИТАЄМО КООРДИНАТИ
             session.setState(BotState.AWAITING_COORDINATES);
             sendAndTrackMessage(chatId, "Прийнято. Введіть координати (MGRS):", session);
         }
@@ -166,14 +169,20 @@ public class FpvReportTelegramBot extends TelegramLongPollingBot {
         }
         else if (session.getState() == BotState.AWAITING_REB) {
             session.getReportRequest().setLostFPVDueToREB(data.equals("REB_YES"));
-            session.setState(BotState.AWAITING_VIDEO);
 
+            // ТЕПЕР ПИТАЄМО ВІДЕО В САМОМУ КІНЦІ
+            session.setState(BotState.AWAITING_VIDEO);
             InlineKeyboardMarkup skipMarkup = InlineKeyboardMarkup.builder()
-                    .keyboardRow(List.of(createInlineBtn("Пропустити ⏩", "SKIP_VIDEO")))
+                    .keyboardRow(List.of(createInlineBtn("Пропустити відео ⏩", "SKIP_VIDEO")))
                     .build();
             sendAndTrackInline(chatId, "📹 Прикріпіть відео або натисніть 'Пропустити':", skipMarkup, session);
         }
         else if (data.equals("SKIP_VIDEO")) {
+            // Додаємо помітку в опис, що відео немає
+            String currentInfo = session.getReportRequest().getAdditionalInfo();
+            session.getReportRequest().setAdditionalInfo(currentInfo + "\n\n📹 Відео: відсутнє");
+
+            // ТЕПЕР МОЖНА ВІДПРАВЛЯТИ, БО ВСІ ІНШІ ПОЛЯ (Координати, Опис) ВЖЕ ЗАПОВНЕНІ
             processReportSubmission(chatId, session);
         }
     }
