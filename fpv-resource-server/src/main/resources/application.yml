@@ -23,5 +23,6 @@ spring:
 
   flyway:
     enabled: true
-    baseline-on-migrate: false
+    baseline-on-migrate: true
+    baseline-version: 0
     table: flyway_schema_history_resource
