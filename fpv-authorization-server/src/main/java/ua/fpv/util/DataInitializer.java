@@ -30,8 +30,6 @@ public class DataInitializer {
 
     private final FpvPilotRepository fpvPilotRepository;
 
-    private final FpvReportRepository fpvReportRepository;
-
     private final PasswordEncoder passwordEncoder;
 
     private final RegisteredClientRepository registeredClientRepository;
