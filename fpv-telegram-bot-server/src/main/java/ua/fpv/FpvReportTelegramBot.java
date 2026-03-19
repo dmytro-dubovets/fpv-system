@@ -200,7 +200,7 @@ public class FpvReportTelegramBot extends TelegramLongPollingBot {
             Message sent = execute(forward);
 
             String cleanId = archiveChannelId.replace("-100", "");
-            String videoLink = "https://t.me/c/" + cleanId + "/" + sent.getMessageId() + LocalDateTime.now();
+            String videoLink = "https://t.me/c/" + cleanId + "/" + sent.getMessageId();
 
             session.getReportRequest().setAdditionalInfo(
                     (session.getReportRequest().getAdditionalInfo() != null ? session.getReportRequest().getAdditionalInfo() : "")
