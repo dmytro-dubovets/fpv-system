@@ -117,7 +117,8 @@ public class FpvReportServiceImpl implements FpvReportService {
     }
 
     private FpvReport mapToEntity(FpvReportCreateRequest request) {
-        FpvPilot fpvPilot = fpvPilotRepository.findById(request.getFpvPilotId())
+        String currentUsername = getCurrentUsername();
+        FpvPilot fpvPilot = fpvPilotRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new RuntimeException("Пілота не знайдено"));
 
         return FpvReport.builder()
@@ -128,6 +129,7 @@ public class FpvReportServiceImpl implements FpvReportService {
                 .isOnTargetFPV(request.isOnTargetFPV())
                 .coordinatesMGRS(request.getCoordinatesMGRS())
                 .additionalInfo(request.getAdditionalInfo())
+                .createdByUsername(currentUsername)
                 .build();
     }
 
