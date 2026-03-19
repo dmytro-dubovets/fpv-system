@@ -16,6 +16,12 @@ spring:
           issuer-uri: http://auth-server.railway.internal:9000
           jwk-set-uri: http://auth-server.railway.internal:9000/oauth2/jwks
 
+  logging:
+    level:
+      org:
+        springframework:
+          security: DEBUG
+
   jpa:
     hibernate:
       ddl-auto: update
