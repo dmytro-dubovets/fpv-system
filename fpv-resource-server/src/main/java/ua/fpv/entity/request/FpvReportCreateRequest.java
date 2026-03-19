@@ -3,6 +3,7 @@ package ua.fpv.entity.request;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import jakarta.persistence.Column;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -21,6 +22,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class FpvReportCreateRequest {
+
+    private Long fpvPilotId;
 
     @Valid
     @NotNull(message = "FPVDrone object can't be null!")

@@ -53,6 +53,10 @@ public class FpvReport implements Serializable {
     @Column(name = "additional_info")
     private String additionalInfo;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "fpv_pilot_id", nullable = false) // Вказуємо на існуючу колонку в БД
+    private FpvPilot fpvPilot;
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

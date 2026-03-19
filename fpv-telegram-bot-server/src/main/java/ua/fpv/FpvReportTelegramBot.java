@@ -22,6 +22,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ua.fpv.entity.FpvDroneRequest;
 import ua.fpv.entity.FpvReportCreateRequest;
 import ua.fpv.entity.model.FpvDrone;
+import ua.fpv.entity.model.FpvPilot;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -215,7 +216,7 @@ public class FpvReportTelegramBot extends TelegramLongPollingBot {
     private void processReportSubmission(long chatId, UserSession session) {
         log.info("Відправка звіту на сервер для чату: {}", chatId);
 
-        session.getReportRequest().setFpvPilotId(1L);
+        session.getReportRequest().setFpvPilotId(chatId);
 
         fpvApiClient.sendReport(session.getReportRequest())
                 .subscribe(

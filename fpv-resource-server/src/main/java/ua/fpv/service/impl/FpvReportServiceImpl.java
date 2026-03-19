@@ -12,6 +12,7 @@ import ua.fpv.entity.model.FpvReport;
 import ua.fpv.entity.request.FpvReportCreateRequest;
 import ua.fpv.entity.request.FpvReportUpdateRequest;
 import ua.fpv.entity.response.FpvReportResponse;
+import ua.fpv.repository.FpvPilotRepository;
 import ua.fpv.repository.FpvReportRepository;
 import ua.fpv.util.FpvReportNotFoundException;
 
@@ -28,6 +29,8 @@ import java.util.stream.Collectors;
 public class FpvReportServiceImpl implements FpvReportService {
 
     private final FpvReportRepository fpvReportRepository;
+
+    private final FpvPilotRepository fpvPilotRepository;
 
     private final FpvDroneServiceImpl fpvDroneService;
 
@@ -114,7 +117,11 @@ public class FpvReportServiceImpl implements FpvReportService {
     }
 
     private FpvReport mapToEntity(FpvReportCreateRequest request) {
+        FpvPilot fpvPilot = fpvPilotRepository.findById(request.getFpvPilotId())
+                .orElseThrow(() -> new RuntimeException("Пілота не знайдено"));
+
         return FpvReport.builder()
+                .fpvPilot(fpvPilot)
                 .fpvDrone(fpvDroneService.mapToFpvDroneEntity(request.getFpvDrone()))
                 .dateTimeFlight(updateDateTimeFlight(request.getDateTimeFlight()))
                 .isLostFPVDueToREB(request.isLostFPVDueToREB())

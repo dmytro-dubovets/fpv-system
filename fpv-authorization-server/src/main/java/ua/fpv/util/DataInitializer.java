@@ -57,42 +57,8 @@ public class DataInitializer {
                         .build())
                 .build();
 
-
         registeredClientRepository.save(client);
 
-        FpvPilot admin = new FpvPilot();
-
-        if (fpvPilotRepository.findByUsername("fpv-client").isEmpty()) {
-            log.info("Data Initializer - fpv-client: {}", client.getClientId());
-            admin.setUsername("fpv-client");
-            admin.setFirstname("John");
-            admin.setLastname("Doe");
-            admin.setPassword(passwordEncoder.encode("admin"));
-            admin.setClientId(client.getClientId());
-            admin.addAuthority("fpvreport:read");
-            admin.addAuthority("fpvreport:write");
-            admin.addAuthority("user:read");
-            admin.addAuthority("user:write");
-
-            fpvPilotRepository.save(admin);
-        }
-
-        FpvDrone fpvDrone = new FpvDrone();
-        fpvDrone.setFpvCraftName("testCraftName");
-        fpvDrone.setFpvModel(FpvDrone.FpvModel.BOMBER);
-        fpvDrone.setFpvSerialNumber("1231313");
-
-
-        FpvReport fpvReport = new FpvReport();
-        fpvReport.setFpvPilot(admin);
-        fpvReport.setOnTargetFPV(true);
-        fpvReport.setAdditionalInfo("test");
-        fpvReport.setCoordinatesMGRS("testMGRS");
-        fpvReport.setDateTimeFlight(LocalDateTime.now());
-        fpvReport.setLostFPVDueToREB(true);
-        fpvReport.setFpvDrone(fpvDrone);
-
-        fpvReportRepository.save(fpvReport);
         }
     }
 }
