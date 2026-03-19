@@ -119,29 +119,33 @@ public class FpvReportServiceImpl implements FpvReportService {
     private FpvReport mapToEntity(FpvReportCreateRequest request) {
         String username = request.getCreatedByUsername();
         if (username == null || username.isEmpty()) {
-            username = "fpv-client"; // Дефолтне значення, якщо бот нічого не прислав
+            username = "fpv-client";
         }
 
         final String finalUsername = username;
         FpvPilot fpvPilot = fpvPilotRepository.findByUsername(finalUsername)
                 .orElseGet(() -> {
-                    log.info("Пілота {} не знайдено. Створюю нового...", finalUsername);
-                    FpvPilot newPilot = new FpvPilot();
-                    newPilot.setUsername(finalUsername);
-                    newPilot.setFirstname("System");
-                    newPilot.setLastname("Generated");
+                    log.info("Пілота {} не знайдено. Створюю нового з обов'язковими полями...", finalUsername);
+                    // Використовуємо Builder для створення пілота
+                    FpvPilot newPilot = FpvPilot.builder()
+                            .username(finalUsername)
+                            .firstname("System")
+                            .lastname("Generated")
+                            .password("system_generated_pass") // Щоб задовольнити NOT NULL
+                            .clientId("fpv-bot-client")        // Щоб задовольнити NOT NULL
+                            .build();
                     return fpvPilotRepository.save(newPilot);
                 });
 
         return FpvReport.builder()
-                .fpvPilot(fpvPilot)
+                .fpvPilot(fpvPilot) // Зв'язуємо звіт з об'єктом пілота
                 .fpvDrone(fpvDroneService.mapToFpvDroneEntity(request.getFpvDrone()))
                 .dateTimeFlight(updateDateTimeFlight(request.getDateTimeFlight()))
                 .isLostFPVDueToREB(request.isLostFPVDueToREB())
                 .isOnTargetFPV(request.isOnTargetFPV())
                 .coordinatesMGRS(request.getCoordinatesMGRS())
                 .additionalInfo(request.getAdditionalInfo())
-                .createdByUsername(finalUsername)
+                .createdByUsername(finalUsername) // Для сумісності зі старою схемою репортів
                 .build();
     }
 

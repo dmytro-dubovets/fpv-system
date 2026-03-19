@@ -35,4 +35,10 @@ public class FpvPilot {
 
     @Column(name = "user_name", unique = true, nullable = false)
     private String username;
+
+    @Column(name = "password", nullable = false)
+    private String password;
+
+    @Column(name = "client_id", nullable = false)
+    private String clientId;
 }
