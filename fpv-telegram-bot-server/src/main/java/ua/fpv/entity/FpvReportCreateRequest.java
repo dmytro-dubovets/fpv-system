@@ -25,6 +25,8 @@ public class FpvReportCreateRequest {
     @NotNull(message = "Pilot ID is required!")
     private Long fpvPilotId;
 
+    private String createdByUsername;
+
     @Valid
     @NotNull(message = "FPVDrone object can't be null!")
     private FpvDroneRequest fpvDrone;

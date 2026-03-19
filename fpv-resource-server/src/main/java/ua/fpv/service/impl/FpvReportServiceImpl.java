@@ -117,10 +117,21 @@ public class FpvReportServiceImpl implements FpvReportService {
     }
 
     private FpvReport mapToEntity(FpvReportCreateRequest request) {
-        String currentUsername = getCurrentUsername();
-        FpvPilot fpvPilot = fpvPilotRepository.findByUsername(currentUsername)
-                .or(() -> fpvPilotRepository.findByUsername("fpv-client"))
-                .orElseThrow(() -> new RuntimeException("Пілота не знайдено"));
+        String username = request.getCreatedByUsername();
+        if (username == null || username.isEmpty()) {
+            username = "fpv-client"; // Дефолтне значення, якщо бот нічого не прислав
+        }
+
+        final String finalUsername = username;
+        FpvPilot fpvPilot = fpvPilotRepository.findByUsername(finalUsername)
+                .orElseGet(() -> {
+                    log.info("Пілота {} не знайдено. Створюю нового...", finalUsername);
+                    FpvPilot newPilot = new FpvPilot();
+                    newPilot.setUsername(finalUsername);
+                    newPilot.setFirstname("System");
+                    newPilot.setLastname("Generated");
+                    return fpvPilotRepository.save(newPilot);
+                });
 
         return FpvReport.builder()
                 .fpvPilot(fpvPilot)
@@ -130,7 +141,7 @@ public class FpvReportServiceImpl implements FpvReportService {
                 .isOnTargetFPV(request.isOnTargetFPV())
                 .coordinatesMGRS(request.getCoordinatesMGRS())
                 .additionalInfo(request.getAdditionalInfo())
-                .createdByUsername(currentUsername)
+                .createdByUsername(finalUsername)
                 .build();
     }
 
