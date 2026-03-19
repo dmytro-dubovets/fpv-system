@@ -271,11 +271,28 @@ public class FpvReportTelegramBot extends TelegramLongPollingBot {
 
     private void handleStatisticsRequest(long chatId, UserSession session) {
         sendAndTrackMessage(chatId, "⏳ Завантажую статистику...", session);
+
         fpvApiClient.getStats().subscribe(stats -> {
-            String msg = String.format("📊 *Статистика:*\n🚀 Всього: %s\n🎯 Влучань: %s\n📡 РЕБ: %s",
-                    stats.get("total"), stats.get("hits"), stats.get("rebLosses"));
+            // Отримуємо значення з мапи, додаючи захист від null (getOrDefault)
+            Object total = stats.getOrDefault("total", 0);
+            Object hits = stats.getOrDefault("hits", 0);
+            Object reb = stats.getOrDefault("rebLosses", 0);
+            Object fiber = stats.getOrDefault("fiberCuts", 0); // Нове поле
+
+            String msg = String.format(
+                    "📊 *Статистика:*\n" +
+                            "🚀 Всього вильотів: %s\n" +
+                            "🎯 Влучань: %s\n" +
+                            "📡 Втрачено через РЕБ: %s\n" +
+                            "✂️ Обривів оптики: %s",
+                    total, hits, reb, fiber
+            );
+
             sendAndTrackMessage(chatId, msg, session);
-        }, err -> sendSimpleMessage(chatId, "❌ Помилка статистики"));
+        }, err -> {
+            log.error("Помилка статистики: {}", err.getMessage());
+            sendSimpleMessage(chatId, "❌ Помилка: Не вдалося отримати статистику з сервера.");
+        });
     }
 
     // --- ДОПОМІЖНІ МЕТОДИ З ТРЕКІНГОМ ---

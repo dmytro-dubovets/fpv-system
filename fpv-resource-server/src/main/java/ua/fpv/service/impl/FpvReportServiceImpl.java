@@ -173,13 +173,18 @@ public class FpvReportServiceImpl implements FpvReportService {
         long total = fpvReportRepository.count();
         long hits = fpvReportRepository.countByIsOnTargetFPVTrue();
         long rebLosses = fpvReportRepository.countByIsLostFPVDueToREBTrue();
+
+        // Рахуємо обриви за текстом, який ми самі ж додаємо в боті
+        long fiberCuts = fpvReportRepository.countByAdditionalInfoContaining("Обрив оптоволокна");
+
         double accuracy = total > 0 ? (hits * 100.0 / total) : 0.0;
 
         return Map.of(
                 "total", total,
                 "hits", hits,
                 "rebLosses", rebLosses,
-                "accuracy", Math.round(accuracy * 10.0) / 10.0 // Округлення до 1 знаку
+                "fiberCuts", fiberCuts, // Нове поле для бота
+                "accuracy", Math.round(accuracy * 10.0) / 10.0
         );
     }
 }
