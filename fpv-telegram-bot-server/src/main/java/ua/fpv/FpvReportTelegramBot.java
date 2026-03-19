@@ -122,6 +122,8 @@ public class FpvReportTelegramBot extends TelegramLongPollingBot {
             else if ((update.getMessage().hasVideo() || update.getMessage().hasDocument())
                     && session.getState() == BotState.AWAITING_VIDEO) {
                 handleVideoUpload(update, chatId, session);
+            } else {
+                sendSimpleMessage(chatId, "Будь ласка, скористайтеся кнопками меню або введіть коректну команду.");
             }
         }
     }
@@ -147,6 +149,9 @@ public class FpvReportTelegramBot extends TelegramLongPollingBot {
                 session.setState(BotState.AWAITING_RESULT);
                 sendAndTrackInline(chatId, "🎯 Який результат вильоту?", getHitOrMissKeyboard(), session);
             }
+            default -> {
+                sendSimpleMessage(chatId, "⚠️ Невідома команда...");
+            }
         }
     }
 
@@ -164,9 +169,27 @@ public class FpvReportTelegramBot extends TelegramLongPollingBot {
             sendAndTrackMessage(chatId, "Прийнято. Введіть координати (MGRS):", session);
         }
         else if (session.getState() == BotState.AWAITING_RESULT) {
-            session.getReportRequest().setOnTargetFPV(data.equals("HIT"));
-            session.setState(BotState.AWAITING_REB);
-            sendAndTrackInline(chatId, "Чи була втрата через РЕБ?", getYesNoKeyboard("REB"), session);
+            if (data.equals("FIBER_CUT")) {
+                // Логіка для ОБРИВУ
+                session.getReportRequest().setOnTargetFPV(false);
+                session.getReportRequest().setLostFPVDueToREB(false); // Оптика ігнорує РЕБ
+
+                // Додаємо мітку в опис, щоб у базі було видно причину
+                String currentInfo = session.getReportRequest().getAdditionalInfo();
+                session.getReportRequest().setAdditionalInfo(currentInfo + "\n📍 Результат: Обрив оптоволокна");
+
+                session.setState(BotState.AWAITING_VIDEO);
+
+                InlineKeyboardMarkup skipMarkup = InlineKeyboardMarkup.builder()
+                        .keyboardRow(List.of(createInlineBtn("Пропустити відео ⏩", "SKIP_VIDEO")))
+                        .build();
+                sendAndTrackInline(chatId, "📹 Прикріпіть відео (момент обриву) або натисніть 'Пропустити':", skipMarkup, session);
+            } else {
+                // Логіка для ВЛУЧАННЯ або ПРОМАХУ (радіоканал)
+                session.getReportRequest().setOnTargetFPV(data.equals("HIT"));
+                session.setState(BotState.AWAITING_REB);
+                sendAndTrackInline(chatId, "Чи була втрата через РЕБ?", getYesNoKeyboard("REB"), session);
+            }
         }
         else if (session.getState() == BotState.AWAITING_REB) {
             session.getReportRequest().setLostFPVDueToREB(data.equals("REB_YES"));
@@ -305,7 +328,12 @@ public class FpvReportTelegramBot extends TelegramLongPollingBot {
     }
 
     private InlineKeyboardMarkup getHitOrMissKeyboard() {
-        return new InlineKeyboardMarkup(List.of(List.of(createInlineBtn("✅ Влучання", "HIT"), createInlineBtn("❌ Промах", "MISS"))));
+        return new InlineKeyboardMarkup(List.of(
+                List.of(createInlineBtn("✅ Влучання", "HIT"),
+                        createInlineBtn("❌ Промах", "MISS")),
+                List.of(createInlineBtn("✂️ Обрив (оптика)", "FIBER_CUT"))
+        ));
+
     }
 
     private InlineKeyboardMarkup getYesNoKeyboard(String p) {
