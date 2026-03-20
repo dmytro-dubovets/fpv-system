@@ -3,21 +3,26 @@ package ua.fpv.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import ua.fpv.entity.model.FpvReport;
 import ua.fpv.entity.request.FpvReportCreateRequest;
 import ua.fpv.entity.request.FpvReportIds;
 import ua.fpv.entity.request.FpvReportUpdateRequest;
 import ua.fpv.entity.response.FpvReportResponse;
 import ua.fpv.repository.fpvserialnumber.UniqueFpvSerialNumber;
+import ua.fpv.service.impl.ExcelExportService;
 import ua.fpv.service.impl.FpvReportServiceImpl;
 import ua.fpv.util.AppError;
 import ua.fpv.util.FpvReportNotFoundException;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +35,8 @@ import java.util.Map;
 public class FpvReportRestController {
 
     private final FpvReportServiceImpl fpvReportServiceImpl;
+
+    private final ExcelExportService excelExportService;
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('SCOPE_fpvreport:read')")
@@ -99,6 +106,17 @@ public class FpvReportRestController {
         log.info("Отримання статистики звітів FPV");
         Map<String, Object> stats = fpvReportServiceImpl.getStatistics();
         return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/api/reports/export/excel")
+    public ResponseEntity<byte[]> exportToExcel() throws IOException {
+        List<FpvReportResponse> reports = fpvReportServiceImpl.findAll();
+        byte[] excelContent = excelExportService.exportReportsToExcel(reports);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=reports.xlsx")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(excelContent);
     }
 
 }
