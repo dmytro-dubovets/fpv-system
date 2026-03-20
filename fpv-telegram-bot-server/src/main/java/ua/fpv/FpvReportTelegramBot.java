@@ -311,22 +311,37 @@ public class FpvReportTelegramBot extends TelegramLongPollingBot {
     private void handleExcelDownloadRequest(long chatId) {
         sendSimpleMessage(chatId, "⏳ Формую файл, зачекайте...");
 
-        fpvApiClient.downloadExcelReports().subscribe(fileBytes -> {
-            try {
-                SendDocument sendDocument = new SendDocument();
-                sendDocument.setChatId(String.valueOf(chatId));
+        fpvApiClient.downloadExcelReports()
+                .doOnError(e -> log.error("❌ ПОМИЛКА WEBCLIENT ПРИ ЗАВАНТАЖЕННІ EXCEL: ", e)) // Покаже помилку в логах бота
+                .subscribe(fileBytes -> {
+                    if (fileBytes == null || fileBytes.length == 0) {
+                        log.warn("⚠️ Сервер повернув порожній масив байтів для чату {}", chatId);
+                        sendSimpleMessage(chatId, "⚠️ Файл порожній або даних для звіту не знайдено.");
+                        return;
+                    }
 
-                // Створюємо файл з масиву байтів
-                InputFile inputFile = new InputFile(new ByteArrayInputStream(fileBytes), "FPV_Reports.xlsx");
-                sendDocument.setDocument(inputFile);
-                sendDocument.setCaption("📊 Повний звіт по дронах та вильотах");
+                    log.info("📂 Отримано Excel файл розміром: {} байт", fileBytes.length);
 
-                execute(sendDocument);
-            } catch (Exception e) {
-                log.error("Помилка відправки файлу: {}", e.getMessage());
-                sendSimpleMessage(chatId, "❌ Не вдалося надіслати файл.");
-            }
-        }, err -> sendSimpleMessage(chatId, "❌ Помилка при завантаженні даних з сервера."));
+                    try {
+                        SendDocument sendDocument = new SendDocument();
+                        sendDocument.setChatId(String.valueOf(chatId));
+
+                        // Використовуємо ByteArrayInputStream для формування файлу
+                        InputFile inputFile = new InputFile(new ByteArrayInputStream(fileBytes), "FPV_Reports.xlsx");
+                        sendDocument.setDocument(inputFile);
+                        sendDocument.setCaption("📊 Повний звіт по дронах та вильотах");
+
+                        execute(sendDocument);
+                        log.info("✅ Excel успішно надіслано користувачу {}", chatId);
+                    } catch (Exception e) {
+                        log.error("❌ Помилка Telegram API при відправці документа: ", e);
+                        sendSimpleMessage(chatId, "❌ Помилка при відправці файлу в Telegram.");
+                    }
+                }, err -> {
+                    // Цей блок спрацює, якщо WebClient отримає 4xx або 5xx помилку
+                    log.error("❌ КРИТИЧНА ПОМИЛКА ПРИ ЗВЕРНЕННІ ДО API: {}", err.getMessage());
+                    sendSimpleMessage(chatId, "❌ Не вдалося отримати дані з сервера. Перевірте статус Resource Server.");
+                });
     }
 
     // --- ДОПОМІЖНІ МЕТОДИ З ТРЕКІНГОМ ---
