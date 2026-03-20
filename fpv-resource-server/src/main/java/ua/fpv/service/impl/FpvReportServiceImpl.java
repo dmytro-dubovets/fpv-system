@@ -121,9 +121,8 @@ public class FpvReportServiceImpl implements FpvReportService {
         // Якщо ні — беремо chatId як ідентифікатор.
         String identifier = request.getCreatedByUsername();
 
-        if (identifier == null || identifier.isEmpty() || identifier.equals("fpv-client")) {
-            // Можна додати в request поле chatId, або передавати його в полі createdByUsername
-            identifier = request.getCreatedByUsername();
+        if (identifier == null || identifier.isBlank()) {
+            identifier = "unknown_pilot";
         }
 
         final String finalIdentifier = identifier;

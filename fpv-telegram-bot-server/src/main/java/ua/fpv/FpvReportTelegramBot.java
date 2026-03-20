@@ -267,6 +267,8 @@ public class FpvReportTelegramBot extends TelegramLongPollingBot {
 
         session.getReportRequest().setCreatedByUsername(String.valueOf(chatId));
 
+        log.info("Відправка звіту. Пілот: {}", session.getReportRequest().getCreatedByUsername());
+
         fpvApiClient.sendReport(session.getReportRequest())
                 .subscribe(
                         success -> {
