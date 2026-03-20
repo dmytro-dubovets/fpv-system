@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ua.fpv.entity.model.FpvPilot;
 import ua.fpv.entity.model.FpvReport;
+import ua.fpv.entity.model.PilotRegistry;
 import ua.fpv.entity.request.FpvReportCreateRequest;
 import ua.fpv.entity.request.FpvReportUpdateRequest;
 import ua.fpv.entity.response.FpvReportResponse;
@@ -115,27 +116,38 @@ public class FpvReportServiceImpl implements FpvReportService {
     }
 
     private FpvReport mapToEntity(FpvReportCreateRequest request) {
-        // Якщо прийшов конкретний юзернейм (наприклад, з Telegram), беремо його.
-        // Якщо ні — беремо chatId як ідентифікатор.
-        String identifier = request.getCreatedByUsername();
+        String identifier = request.getCreatedByUsername(); // Це наш chatId у вигляді рядка
+        Long chatId = null;
 
-        if (identifier == null || identifier.isBlank()) {
-            identifier = "unknown_pilot";
+        try {
+            chatId = Long.parseLong(identifier);
+        } catch (NumberFormatException e) {
+            log.warn("Identifier is not a numeric chatId: {}", identifier);
         }
 
+        // 1. Отримуємо дані з нашого Enum-реєстру (який ми створили раніше)
+        final PilotRegistry registryData = PilotRegistry.getByChatId(chatId != null ? chatId : 0L);
         final String finalIdentifier = identifier;
 
-        // Шукаємо або створюємо пілота за цим ідентифікатором (chatId)
+        // 2. Шукаємо пілота в БД або створюємо нового, використовуючи дані з Enum
         FpvPilot fpvPilot = fpvPilotRepository.findByUsername(finalIdentifier)
                 .orElseGet(() -> {
+                    log.info("Реєстрація нового пілота: {} ({})", registryData.getLastName(), finalIdentifier);
                     return fpvPilotRepository.save(FpvPilot.builder()
                             .username(finalIdentifier)
-                            .firstname("Telegram User")
-                            .lastname(finalIdentifier)
+                            .firstname(registryData.getFirstName())
+                            .lastname(registryData.getLastName())
                             .password("pass_" + finalIdentifier)
                             .clientId("bot_" + finalIdentifier)
                             .build());
                 });
+
+        // 3. Якщо пілот вже був у базі, але ми хочемо оновити його ім'я (якщо воно змінилося в Enum)
+        if (registryData != PilotRegistry.UNKNOWN && !fpvPilot.getLastname().equals(registryData.getLastName())) {
+            fpvPilot.setFirstname(registryData.getFirstName());
+            fpvPilot.setLastname(registryData.getLastName());
+            fpvPilotRepository.save(fpvPilot);
+        }
 
         return FpvReport.builder()
                 .fpvPilot(fpvPilot)
@@ -145,7 +157,7 @@ public class FpvReportServiceImpl implements FpvReportService {
                 .isOnTargetFPV(request.isOnTargetFPV())
                 .coordinatesMGRS(request.getCoordinatesMGRS())
                 .additionalInfo(request.getAdditionalInfo())
-                .createdByUsername(finalIdentifier) // ТУТ тепер буде chatId
+                .createdByUsername(finalIdentifier)
                 .build();
     }
 

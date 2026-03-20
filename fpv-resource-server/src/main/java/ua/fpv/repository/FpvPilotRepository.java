@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface FpvPilotRepository extends JpaRepository<FpvPilot, Long> {
 
     Optional<FpvPilot> findByUsername(String currentUsername);
+
+    Optional<FpvPilot> findByChatId(Long chatId);
 }

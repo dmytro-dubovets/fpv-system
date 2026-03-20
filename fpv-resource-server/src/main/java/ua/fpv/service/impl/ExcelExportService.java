@@ -6,6 +6,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
+import ua.fpv.entity.model.PilotRegistry;
 import ua.fpv.entity.response.FpvReportResponse;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -16,6 +17,10 @@ import java.util.List;
 public class ExcelExportService {
 
     public byte[] exportReportsToExcel(List<FpvReportResponse> reports) throws IOException {
+
+        private static final java.time.format.DateTimeFormatter DATE_FORMATTER =
+                java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Reports");
 
@@ -40,7 +45,7 @@ public class ExcelExportService {
 
                 // Дата вильоту (використовуємо toString або форматтер)
                 row.createCell(1).setCellValue(report.getDateTimeFlight() != null
-                        ? report.getDateTimeFlight().toString().replace("T", " ")
+                        ? report.getDateTimeFlight().format(DATE_FORMATTER)
                         : "Н/Д");
 
                 // Дані про дрон (Серійник та Модель)
@@ -63,7 +68,17 @@ public class ExcelExportService {
                 row.createCell(6).setCellValue(report.getAdditionalInfo() != null ? report.getAdditionalInfo() : "-");
 
                 // Пілот (твоє нове поле)
-                row.createCell(7).setCellValue(report.getPilotUsername() != null ? report.getPilotUsername() : "Система");
+                String pilotDisplayName = "Н/Д";
+                if (report.getPilotUsername() != null) {
+                    try {
+                        Long cid = Long.parseLong(report.getPilotUsername());
+                        PilotRegistry pilot = PilotRegistry.getByChatId(cid);
+                        pilotDisplayName = pilot.getLastName() + " " + pilot.getFirstName();
+                    } catch (NumberFormatException e) {
+                        pilotDisplayName = report.getPilotUsername(); // якщо там не число
+                    }
+                }
+                row.createCell(7).setCellValue(pilotDisplayName);
             }
 
             // 3. Автоматичне підлаштування ширини для всіх 8 колонок
