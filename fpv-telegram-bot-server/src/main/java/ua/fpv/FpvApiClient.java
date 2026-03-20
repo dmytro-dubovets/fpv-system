@@ -36,7 +36,7 @@ public class FpvApiClient {
 
     public Mono<byte[]> downloadExcelReports() {
         return webClient.get()
-                .uri("/api/reports/export/excel")
+                .uri("/api/v1/fpvreports/export/excel")
                 .accept(MediaType.APPLICATION_OCTET_STREAM)
                 .retrieve()
                 .bodyToMono(byte[].class);

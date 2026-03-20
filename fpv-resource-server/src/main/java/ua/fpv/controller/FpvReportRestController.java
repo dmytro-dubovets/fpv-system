@@ -108,7 +108,8 @@ public class FpvReportRestController {
         return ResponseEntity.ok(stats);
     }
 
-    @GetMapping("/api/reports/export/excel")
+    @GetMapping("/export/excel")
+    @PreAuthorize("hasAuthority('SCOPE_fpvreport:read')")
     public ResponseEntity<byte[]> exportToExcel() throws IOException {
         List<FpvReportResponse> reports = fpvReportServiceImpl.findAll();
         byte[] excelContent = excelExportService.exportReportsToExcel(reports);
