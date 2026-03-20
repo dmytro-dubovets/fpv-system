@@ -25,6 +25,7 @@ import ua.fpv.entity.FpvDroneRequest;
 import ua.fpv.entity.FpvReportCreateRequest;
 import ua.fpv.entity.model.FpvDrone;
 import ua.fpv.entity.model.FpvPilot;
+import ua.fpv.entity.model.PilotRegistry;
 
 import java.io.ByteArrayInputStream;
 import java.time.LocalDateTime;
@@ -219,6 +220,8 @@ public class FpvReportTelegramBot extends TelegramLongPollingBot {
             String currentInfo = session.getReportRequest().getAdditionalInfo();
             session.getReportRequest().setAdditionalInfo(currentInfo + "\n\n📹 Відео: відсутнє");
 
+            sendSimpleMessage(chatId, "📝 Звіт сформовано (без відео). Надсилаю на сервер...");
+
             // ТЕПЕР МОЖНА ВІДПРАВЛЯТИ, БО ВСІ ІНШІ ПОЛЯ (Координати, Опис) ВЖЕ ЗАПОВНЕНІ
             processReportSubmission(chatId, session);
         }
@@ -226,35 +229,92 @@ public class FpvReportTelegramBot extends TelegramLongPollingBot {
 
     private void handleVideoUpload(Update update, long chatId, UserSession session) {
         try {
-            sendSimpleMessage(chatId, "⏳ Обробка відео...");
 
-            ForwardMessage forward = new ForwardMessage();
-            forward.setChatId(archiveChannelId);
-            forward.setFromChatId(String.valueOf(chatId));
-            forward.setMessageId(update.getMessage().getMessageId());
+            // --- НОВИЙ БЛОК ПЕРЕВІРКИ РОЗМІРУ ---
+            long fileSize = 0;
+            if (update.getMessage().hasVideo()) {
+                fileSize = update.getMessage().getVideo().getFileSize();
+            } else if (update.getMessage().hasDocument()) {
+                fileSize = update.getMessage().getDocument().getFileSize();
+            }
 
-            Message sent = execute(forward);
+            // Перевірка на 50 МБ (50 * 1024 * 1024 байт)
+            if (fileSize > 52428800) {
+                log.warn("Користувач {} надіслав завеликий файл: {} байт", chatId, fileSize);
+                sendSimpleMessage(chatId, "⚠️ *Файл занадто великий (>50MB)*.\n" +
+                        "На жаль, Telegram обмежує завантаження таких файлів для ботів.\n" +
+                        "Надсилаю звіт без відео...");
+                processReportSubmission(chatId, session);
+                return; // Виходимо з методу, далі код не йде
+            }
 
+            sendSimpleMessage(chatId, "⏳ Обробка та архівування відео...");
+
+            String fileId;
+            String fileName = "video.mp4";
+            boolean isVideo = false;
+
+            if (update.getMessage().hasVideo()) {
+                fileId = update.getMessage().getVideo().getFileId();
+                isVideo = true;
+            } else {
+                fileId = update.getMessage().getDocument().getFileId();
+                fileName = update.getMessage().getDocument().getFileName();
+            }
+
+            // 1. Отримуємо дані пілота з нашого реєстру
+            PilotRegistry pilot = PilotRegistry.getByChatId(chatId);
+            String pilotName = pilot.getLastName() + " " + pilot.getFirstName();
+            String timestamp = LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"));
+
+            // 2. Формуємо гарний підпис для архіву
+            String caption = String.format(
+                    "📹 <b>Новий звіт з відео</b>\n" +
+                            "👤 Пілот: %s\n" +
+                            "📅 Дата: %s\n" +
+                            "🆔 ChatID: %s\n" +
+                            "🤖 Дрон: %s (%s)",
+                    pilotName,
+                    timestamp,
+                    chatId,
+                    session.getReportRequest().getFpvDrone().getFpvSerialNumber(),
+                    session.getReportRequest().getFpvDrone().getFpvModel()
+            );
+
+            Message sent;
+            if (isVideo) {
+                org.telegram.telegrambots.meta.api.methods.send.SendVideo sendVideo = new org.telegram.telegrambots.meta.api.methods.send.SendVideo();
+                sendVideo.setChatId(archiveChannelId);
+                sendVideo.setVideo(new InputFile(fileId));
+                sendVideo.setCaption(caption);
+                sendVideo.setParseMode("HTML");
+                sent = execute(sendVideo);
+            } else {
+                org.telegram.telegrambots.meta.api.methods.send.SendDocument sendDoc = new org.telegram.telegrambots.meta.api.methods.send.SendDocument();
+                sendDoc.setChatId(archiveChannelId);
+                sendDoc.setDocument(new InputFile(fileId));
+                sendDoc.setCaption(caption);
+                sendDoc.setParseMode("HTML");
+                sent = execute(sendDoc);
+            }
+
+            // 3. Генеруємо посилання на повідомлення в архіві
             String cleanId = archiveChannelId.replace("-100", "");
             String videoLink = "https://t.me/c/" + cleanId + "/" + sent.getMessageId();
 
             session.getReportRequest().setAdditionalInfo(
                     (session.getReportRequest().getAdditionalInfo() != null ? session.getReportRequest().getAdditionalInfo() : "")
-                            + "\n\n📹 Відео: " + videoLink
+                            + "\n\n📹 Відео в архіві: " + videoLink
             );
 
-            // 1. ПІДТВЕРДЖЕННЯ АРХІВАЦІЇ:
-            sendSimpleMessage(chatId, "✅ Відео додано до архіву.");
+            sendSimpleMessage(chatId, "✅ Відео підписано та додано до архіву.");
+            sendSimpleMessage(chatId, "📝 Надсилаю фінальний звіт на сервер...");
 
-            // 2. ПІДТВЕРДЖЕННЯ ФОРМУВАННЯ ЗВІТУ (як було раніше):
-            sendSimpleMessage(chatId, "📝 Звіт сформовано. Надсилаю на сервер...");
-
-            // 3. ПЕРЕХІД ДО ВІДПРАВКИ:
             processReportSubmission(chatId, session);
 
         } catch (Exception e) {
-            log.error("Помилка відео: {}", e.getMessage());
-            sendSimpleMessage(chatId, "⚠️ Не вдалося зберегти відео, відправляю звіт без нього...");
+            log.error("Помилка при пересиланні відео з підписом: {}", e.getMessage());
+            sendSimpleMessage(chatId, "⚠️ Не вдалося підписати відео, спробую відправити звіт без посилання...");
             processReportSubmission(chatId, session);
         }
     }
