@@ -16,10 +16,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ExcelExportService {
 
+    private static final java.time.format.DateTimeFormatter DATE_FORMATTER =
+            java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+
     public byte[] exportReportsToExcel(List<FpvReportResponse> reports) throws IOException {
 
-        private static final java.time.format.DateTimeFormatter DATE_FORMATTER =
-                java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Reports");
