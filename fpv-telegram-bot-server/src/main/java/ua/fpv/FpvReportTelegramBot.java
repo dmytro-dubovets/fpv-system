@@ -8,8 +8,10 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.ForwardMessage;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
+import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
@@ -24,11 +26,14 @@ import ua.fpv.entity.FpvReportCreateRequest;
 import ua.fpv.entity.model.FpvDrone;
 import ua.fpv.entity.model.FpvPilot;
 
+import java.io.ByteArrayInputStream;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static java.awt.SystemColor.text;
 
 @Slf4j
 @Component
@@ -70,7 +75,7 @@ public class FpvReportTelegramBot extends TelegramLongPollingBot {
                 ? update.getCallbackQuery().getMessage().getChatId()
                 : update.getMessage().getChatId();
 
-        // Перевірка доступу
+        // 1. Перевірка доступу
         if (!allowedUsers.contains(chatId)) {
             sendSimpleMessage(chatId, "Доступ заборонено. ID: " + chatId);
             return;
@@ -78,24 +83,23 @@ public class FpvReportTelegramBot extends TelegramLongPollingBot {
 
         UserSession session = userSessions.computeIfAbsent(chatId, k -> createNewSession());
 
+        // 2. Обробка кнопок під повідомленнями (Inline)
         if (update.hasCallbackQuery()) {
             handleCallback(update, session);
             return;
         }
 
+        // 3. Обробка звичайних повідомлень
         if (update.hasMessage()) {
-            // ТРЕКІНГ: Зберігаємо ID кожного повідомлення користувача
             session.getMessageIds().add(update.getMessage().getMessageId());
 
+            // А) ОБРОБКА ТЕКСТУ (Команди та введення даних)
             if (update.getMessage().hasText()) {
-                String text = update.getMessage().getText(); // Тепер це точно String
+                String text = update.getMessage().getText();
 
-                // КОМАНДА ОЧИЩЕННЯ
                 if (text.equals("/clear") || text.equals("🧹 Очистити чат")) {
-                    int lastMessageId = update.getMessage().getMessageId();
-                    for (int i = 0; i < 50; i++) {
-                        deleteMessage(chatId, lastMessageId - i);
-                    }
+                    int lastId = update.getMessage().getMessageId();
+                    for (int i = 0; i < 50; i++) deleteMessage(chatId, lastId - i);
                     return;
                 }
 
@@ -110,6 +114,11 @@ public class FpvReportTelegramBot extends TelegramLongPollingBot {
                     return;
                 }
 
+                if (text.equals("📥 Завантажити Excel")) {
+                    handleExcelDownloadRequest(chatId);
+                    return;
+                }
+
                 if (text.equals("📝 Створити звіт")) {
                     session.clearSession();
                     session.setState(BotState.AWAITING_SERIAL);
@@ -117,12 +126,16 @@ public class FpvReportTelegramBot extends TelegramLongPollingBot {
                     return;
                 }
 
+                // Будь-який інший текст йде в логіку звіту
                 handleReportFlow(chatId, text, session);
             }
+            // Б) ОБРОБКА ВІДЕО / ФАЙЛІВ
             else if ((update.getMessage().hasVideo() || update.getMessage().hasDocument())
                     && session.getState() == BotState.AWAITING_VIDEO) {
                 handleVideoUpload(update, chatId, session);
-            } else {
+            }
+            // В) ВСЕ ІНШЕ (стікери, фото без тексту тощо)
+            else {
                 sendSimpleMessage(chatId, "Будь ласка, скористайтеся кнопками меню або введіть коректну команду.");
             }
         }
@@ -132,7 +145,7 @@ public class FpvReportTelegramBot extends TelegramLongPollingBot {
         switch (session.getState()) {
             case AWAITING_SERIAL -> {
                 session.getReportRequest().getFpvDrone().setFpvSerialNumber(text);
-                session.getReportRequest().getFpvDrone().setFpvCraftName("Craft-" + text);
+                session.getReportRequest().getFpvDrone().setFpvCraftName(text);
                 session.setState(BotState.AWAITING_FPV_DRONE);
                 sendAndTrackInline(chatId, "Оберіть тип дрона:", getDroneModelKeyboard(), session);
             }
@@ -295,6 +308,27 @@ public class FpvReportTelegramBot extends TelegramLongPollingBot {
         });
     }
 
+    private void handleExcelDownloadRequest(long chatId) {
+        sendSimpleMessage(chatId, "⏳ Формую файл, зачекайте...");
+
+        fpvApiClient.downloadExcelReports().subscribe(fileBytes -> {
+            try {
+                SendDocument sendDocument = new SendDocument();
+                sendDocument.setChatId(String.valueOf(chatId));
+
+                // Створюємо файл з масиву байтів
+                InputFile inputFile = new InputFile(new ByteArrayInputStream(fileBytes), "FPV_Reports.xlsx");
+                sendDocument.setDocument(inputFile);
+                sendDocument.setCaption("📊 Повний звіт по дронах та вильотах");
+
+                execute(sendDocument);
+            } catch (Exception e) {
+                log.error("Помилка відправки файлу: {}", e.getMessage());
+                sendSimpleMessage(chatId, "❌ Не вдалося надіслати файл.");
+            }
+        }, err -> sendSimpleMessage(chatId, "❌ Помилка при завантаженні даних з сервера."));
+    }
+
     // --- ДОПОМІЖНІ МЕТОДИ З ТРЕКІНГОМ ---
 
     private void sendAndTrackMessage(long chatId, String text, UserSession session) {
@@ -364,7 +398,8 @@ public class FpvReportTelegramBot extends TelegramLongPollingBot {
         r1.add("📝 Створити звіт");
         r1.add("📊 Статистика");
         KeyboardRow r2 = new KeyboardRow();
-        r2.add("🧹 Очистити чат"); // Додаємо другим рядом
+        r2.add("📥 Завантажити Excel");
+        r2.add("🧹 Очистити чат");
         m.setKeyboard(List.of(r1, r2));
         return m;
     }

@@ -2,6 +2,7 @@ package ua.fpv;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.client.web.reactive.function.client.ServletOAuth2AuthorizedClientExchangeFilterFunction;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -31,6 +32,14 @@ public class FpvApiClient {
                 .uri("/api/v1/fpvreports/stats")
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {});
+    }
+
+    public Mono<byte[]> downloadExcelReports() {
+        return webClient.get()
+                .uri("/api/reports/export/excel")
+                .accept(MediaType.APPLICATION_OCTET_STREAM)
+                .retrieve()
+                .bodyToMono(byte[].class);
     }
 
     // Допоміжний метод для зручності
