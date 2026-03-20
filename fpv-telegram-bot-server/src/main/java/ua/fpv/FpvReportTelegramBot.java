@@ -262,21 +262,20 @@ public class FpvReportTelegramBot extends TelegramLongPollingBot {
     private void processReportSubmission(long chatId, UserSession session) {
         log.info("Відправка звіту на сервер для чату: {}", chatId);
 
+        // Встановлюємо chatId як ідентифікатор пілота
         session.getReportRequest().setFpvPilotId(chatId);
-        session.getReportRequest().setCreatedByUsername("fpv-client");
+
+        session.getReportRequest().setCreatedByUsername(String.valueOf(chatId));
 
         fpvApiClient.sendReport(session.getReportRequest())
                 .subscribe(
                         success -> {
-                            log.info("Сервер прийняв звіт");
-                            // 1. Обов'язково повідомляємо користувача
+                            log.info("Сервер прийняв звіт від чату {}", chatId);
                             sendSimpleMessage(chatId, "✅ *Звіт успішно сформовано та відправлено!*");
-
-                            // 2. Скидаємо сесію, щоб наступний звіт був чистим
                             session.clearSession();
                         },
                         error -> {
-                            log.error("Помилка API: {}", error.getMessage());
+                            log.error("Помилка API для чату {}: {}", chatId, error.getMessage());
                             sendSimpleMessage(chatId, "❌ Помилка: Сервер не зміг прийняти звіт. Перевірте зв'язок.");
                         }
                 );

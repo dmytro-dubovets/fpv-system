@@ -117,35 +117,38 @@ public class FpvReportServiceImpl implements FpvReportService {
     }
 
     private FpvReport mapToEntity(FpvReportCreateRequest request) {
-        String username = request.getCreatedByUsername();
-        if (username == null || username.isEmpty()) {
-            username = "fpv-client";
+        // Якщо прийшов конкретний юзернейм (наприклад, з Telegram), беремо його.
+        // Якщо ні — беремо chatId як ідентифікатор.
+        String identifier = request.getCreatedByUsername();
+
+        if (identifier == null || identifier.isEmpty() || identifier.equals("fpv-client")) {
+            // Можна додати в request поле chatId, або передавати його в полі createdByUsername
+            identifier = request.getCreatedByUsername();
         }
 
-        final String finalUsername = username;
-        FpvPilot fpvPilot = fpvPilotRepository.findByUsername(finalUsername)
+        final String finalIdentifier = identifier;
+
+        // Шукаємо або створюємо пілота за цим ідентифікатором (chatId)
+        FpvPilot fpvPilot = fpvPilotRepository.findByUsername(finalIdentifier)
                 .orElseGet(() -> {
-                    log.info("Пілота {} не знайдено. Створюю нового з обов'язковими полями...", finalUsername);
-                    // Використовуємо Builder для створення пілота
-                    FpvPilot newPilot = FpvPilot.builder()
-                            .username(finalUsername)
-                            .firstname("System")
-                            .lastname("Generated")
-                            .password("system_generated_pass") // Щоб задовольнити NOT NULL
-                            .clientId("fpv-bot-client")        // Щоб задовольнити NOT NULL
-                            .build();
-                    return fpvPilotRepository.save(newPilot);
+                    return fpvPilotRepository.save(FpvPilot.builder()
+                            .username(finalIdentifier)
+                            .firstname("Telegram User")
+                            .lastname(finalIdentifier)
+                            .password("pass_" + finalIdentifier)
+                            .clientId("bot_" + finalIdentifier)
+                            .build());
                 });
 
         return FpvReport.builder()
-                .fpvPilot(fpvPilot) // Зв'язуємо звіт з об'єктом пілота
+                .fpvPilot(fpvPilot)
                 .fpvDrone(fpvDroneService.mapToFpvDroneEntity(request.getFpvDrone()))
                 .dateTimeFlight(updateDateTimeFlight(request.getDateTimeFlight()))
                 .isLostFPVDueToREB(request.isLostFPVDueToREB())
                 .isOnTargetFPV(request.isOnTargetFPV())
                 .coordinatesMGRS(request.getCoordinatesMGRS())
                 .additionalInfo(request.getAdditionalInfo())
-                .createdByUsername(finalUsername) // Для сумісності зі старою схемою репортів
+                .createdByUsername(finalIdentifier) // ТУТ тепер буде chatId
                 .build();
     }
 
