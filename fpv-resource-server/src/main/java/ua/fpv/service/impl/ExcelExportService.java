@@ -19,45 +19,55 @@ public class ExcelExportService {
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Reports");
 
-            // Заголовок
+            // 1. Створюємо заголовок (Індекси 0-7)
             Row header = sheet.createRow(0);
             header.createCell(0).setCellValue("ID");
-            header.createCell(1).setCellValue("Серійник");
-            header.createCell(2).setCellValue("Модель");
-            header.createCell(3).setCellValue("Результат");
-            header.createCell(4).setCellValue("Координати");
-            header.createCell(5).setCellValue("Додатково");
+            header.createCell(1).setCellValue("Дата вильоту");
+            header.createCell(2).setCellValue("Серійник");
+            header.createCell(3).setCellValue("Модель");
+            header.createCell(4).setCellValue("Результат");
+            header.createCell(5).setCellValue("Координати");
+            header.createCell(6).setCellValue("Додатково");
+            header.createCell(7).setCellValue("Пілот");
 
-            // Дані
+            // 2. Заповнюємо дані
             int rowIdx = 1;
             for (FpvReportResponse report : reports) {
                 Row row = sheet.createRow(rowIdx++);
 
-                // Використовуємо геттери саме твого FpvReportResponse
+                // ID
                 row.createCell(0).setCellValue(report.getFpvReportId() != null ? report.getFpvReportId() : 0);
 
-                // Перевір назви геттерів у своєму DTO (можливо просто getFpvSerialNumber())
-                // Серійник
-                if (report.getFpvDrone() != null && report.getFpvDrone().getFpvSerialNumber() != null) {
-                    row.createCell(1).setCellValue(report.getFpvDrone().getFpvSerialNumber());
+                // Дата вильоту (використовуємо toString або форматтер)
+                row.createCell(1).setCellValue(report.getDateTimeFlight() != null
+                        ? report.getDateTimeFlight().toString().replace("T", " ")
+                        : "Н/Д");
+
+                // Дані про дрон (Серійник та Модель)
+                if (report.getFpvDrone() != null) {
+                    row.createCell(2).setCellValue(report.getFpvDrone().getFpvSerialNumber());
+                    row.createCell(3).setCellValue(report.getFpvDrone().getFpvModel() != null
+                            ? report.getFpvDrone().getFpvModel().toString() : "-");
                 } else {
-                    row.createCell(1).setCellValue("Н/Д");
+                    row.createCell(2).setCellValue("Н/Д");
+                    row.createCell(3).setCellValue("-");
                 }
 
-                if (report.getFpvDrone() != null && report.getFpvDrone().getFpvModel() != null) {
-                    row.createCell(2).setCellValue(report.getFpvDrone().getFpvModel().toString());
-                } else {
-                    row.createCell(2).setCellValue("-");
-                }
-                // Обробка результату (влучання/промах/обрив)
-                row.createCell(3).setCellValue(report.isOnTargetFPV() ? "Влучання" : "Промах/Обрив");
+                // Результат (isOnTargetFPV)
+                row.createCell(4).setCellValue(report.isOnTargetFPV() ? "Влучання" : "Промах/Обрив");
 
-                row.createCell(4).setCellValue(report.getCoordinatesMGRS());
-                row.createCell(5).setCellValue(report.getAdditionalInfo());
+                // Координати
+                row.createCell(5).setCellValue(report.getCoordinatesMGRS() != null ? report.getCoordinatesMGRS() : "-");
+
+                // Додатково
+                row.createCell(6).setCellValue(report.getAdditionalInfo() != null ? report.getAdditionalInfo() : "-");
+
+                // Пілот (твоє нове поле)
+                row.createCell(7).setCellValue(report.getPilotUsername() != null ? report.getPilotUsername() : "Система");
             }
 
-            // Автоматичне підлаштування ширини колонок (опціонально, але зручно)
-            for (int i = 0; i < 6; i++) {
+            // 3. Автоматичне підлаштування ширини для всіх 8 колонок
+            for (int i = 0; i < 8; i++) {
                 sheet.autoSizeColumn(i);
             }
 
