@@ -33,7 +33,7 @@ public class FpvReport implements Serializable {
     @Column(name = "date_time_flight")
     private LocalDateTime dateTimeFlight;
 
-    @CreatedBy
+    //@CreatedBy
     @Column(name = "created_by_username", updatable = false, nullable = false)
     private String createdByUsername;
 

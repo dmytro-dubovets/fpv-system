@@ -50,9 +50,7 @@ public class FpvReportServiceImpl implements FpvReportService {
 
     @Transactional(readOnly = true)
     public List<FpvReportResponse> findAll() {
-        String currentUsername = getCurrentUsername();
-
-        List<FpvReport> fpvReports = fpvReportRepository.findAllByCreatedByUsername(currentUsername);
+        List<FpvReport> fpvReports = fpvReportRepository.findAll();
 
         return fpvReports.stream()
                 .map(this::mapToResponse)
