@@ -174,60 +174,51 @@ public class FpvReportTelegramBot extends TelegramLongPollingBot {
         int messageId = update.getCallbackQuery().getMessage().getMessageId();
         String data = update.getCallbackQuery().getData();
 
-        // 1. Одразу видаляємо повідомлення з кнопками, щоб уникнути повторних натискань
         deleteMessage(chatId, messageId);
 
-        // 2. ПРІОРИТЕТ: Обробка пропуску відео
+        // 1. ПРІОРИТЕТ: Обробка пропуску відео
         if (data.equals("SKIP_VIDEO")) {
             log.info("Користувач {} вибрав пропуск відео", chatId);
-
             String info = session.getReportRequest().getAdditionalInfo();
             session.getReportRequest().setAdditionalInfo(
                     (info != null ? info : "") + "\n\n📹 Відео: відсутнє"
             );
-
             sendSimpleMessage(chatId, "📝 Звіт сформовано (без відео). Надсилаю на сервер...");
             processReportSubmission(chatId, session);
             return;
         }
 
-        // 3. ВИБІР МОДЕЛІ ДРОНА
+        // 2. ВИБІР МОДЕЛІ ДРОНА
         if (session.getState() == BotState.AWAITING_FPV_DRONE) {
             session.getReportRequest().getFpvDrone().setFpvModel(FpvDrone.FpvModel.valueOf(data));
             session.setState(BotState.AWAITING_COORDINATES);
             sendAndTrackMessage(chatId, "Прийнято. Введіть координати (MGRS):", session);
         }
-
-        // 4. ОБРОБКА РЕЗУЛЬТАТУ (Влучання / Промах / Обрив)
+        // 3. ОБРОБКА РЕЗУЛЬТАТУ
         else if (session.getState() == BotState.AWAITING_RESULT) {
             if (data.equals("HIT")) {
-                // ВЛУЧАННЯ -> Ставимо мітки і пропускаємо РЕБ
                 session.getReportRequest().setOnTargetFPV(true);
                 session.getReportRequest().setLostFPVDueToREB(false);
-
                 goToVideoUploadState(chatId, session);
             }
             else if (data.equals("MISS")) {
-                // ПРОМАХ -> Запитуємо про РЕБ
                 session.getReportRequest().setOnTargetFPV(false);
                 session.setState(BotState.AWAITING_REB);
                 sendAndTrackInline(chatId, "Чи була втрата через РЕБ?", getYesNoKeyboard("REB"), session);
             }
             else if (data.equals("FIBER_CUT")) {
-                // ОБРИВ (Оптика) -> Одразу до відео
                 session.getReportRequest().setOnTargetFPV(false);
                 session.getReportRequest().setLostFPVDueToREB(false);
 
                 String currentInfo = session.getReportRequest().getAdditionalInfo();
                 session.getReportRequest().setAdditionalInfo(
-                        (currentInfo != null ? currentInfo : "") + "\n📍 Результат: Обрив оптоволокна"
+                        (currentInfo != null ? currentInfo : "") + "\n⚠️ СТАТУС: ОБРИВ ОПТОВОЛОКНА"
                 );
-
+                log.info("Пілот {} повідомив про ОБРИВ ОПВОЛОКНА", chatId);
                 goToVideoUploadState(chatId, session);
             }
         }
-
-        // 5. ВІДПОВІДЬ ПРО РЕБ (тільки якщо був промах)
+        // 4. ВІДПОВІДЬ ПРО РЕБ (виправлено синтаксис else if)
         else if (session.getState() == BotState.AWAITING_REB) {
             session.getReportRequest().setLostFPVDueToREB(data.equals("REB_YES"));
             goToVideoUploadState(chatId, session);
