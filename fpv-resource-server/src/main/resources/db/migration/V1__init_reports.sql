@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS fpv_drone (
 
 -- 2. Таблиця пілотів (FpvPilot - версія ресурсного сервера)
 CREATE TABLE IF NOT EXISTS fpv_pilot (
-                                        fpv_pilot_id BIGINT PRIMARY KEY,
+                                        fpv_pilot_id BIGSERIAL PRIMARY KEY,
                                         first_name VARCHAR(255),
                                         last_name VARCHAR(255),
                                         user_name VARCHAR(255) UNIQUE NOT NULL
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS fpv_pilot (
 -- 3. Таблиця репортів (FpvReport)
 CREATE TABLE IF NOT EXISTS fpv_report (
                                           fpv_report_id BIGSERIAL PRIMARY KEY,
-                                          fpv_drone_id BIGINT UNIQUE REFERENCES fpv_drone(fpv_drone_id) ON DELETE CASCADE,
+                                          fpv_drone_id BIGINT REFERENCES fpv_drone(fpv_drone_id) ON DELETE CASCADE,
     fpv_pilot_id BIGINT REFERENCES fpv_pilot(fpv_pilot_id), -- ДОДАНО
     date_time_flight TIMESTAMP,
     created_by_username VARCHAR(255) NOT NULL,

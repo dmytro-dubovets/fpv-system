@@ -3,7 +3,7 @@
 -- ===============================
 
 create table if not exists fpv_pilot (
-                                         fpv_pilot_id BIGINT primary key,
+                                         fpv_pilot_id BIGSERIAL primary key,
                                          first_name varchar(100),
                                          last_name varchar(100),
                                          user_name varchar(100) unique not null,
@@ -16,7 +16,7 @@ create table if not exists fpv_pilot (
 );
 
 create table if not exists fpv_pilot_authorities (
-                                                     fpv_pilot_id bigint not null,
+                                                     fpv_pilot_id BIGINT not null,
                                                      authority varchar(100) not null,
                                                      foreign key (fpv_pilot_id) references fpv_pilot(fpv_pilot_id)
 );
@@ -54,3 +54,4 @@ CREATE TABLE IF NOT EXISTS refresh_token (
 
 CREATE INDEX IF NOT EXISTS idx_refresh_token_value ON refresh_token(token);
 CREATE INDEX IF NOT EXISTS idx_report_flight_result ON fpv_report(flight_result);
+CREATE INDEX IF NOT EXISTS idx_report_created_by ON fpv_report(created_by_username);
