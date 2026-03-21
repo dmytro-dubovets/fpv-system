@@ -59,8 +59,17 @@ public class ExcelExportService {
                     row.createCell(3).setCellValue("-");
                 }
 
-                // Результат (isOnTargetFPV)
-                row.createCell(4).setCellValue(report.isOnTargetFPV() ? "Влучання" : "Промах/Обрив");
+
+                String resultStr = "";
+                if (report.getFlightResult() != null) {
+                    switch (report.getFlightResult()) {
+                        case HIT -> resultStr = "Влучання";
+                        case MISS -> resultStr = "Промах";
+                        case FIBER_CUT -> resultStr = "Обрив";
+                        default -> resultStr = "Невідомо"; // Про всяк випадок
+                    }
+                }
+                row.createCell(4).setCellValue(resultStr);
 
                 // Координати
                 row.createCell(5).setCellValue(report.getCoordinatesMGRS() != null ? report.getCoordinatesMGRS() : "-");

@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import ua.fpv.entity.model.FlightResult;
 import ua.fpv.entity.validation.localdatetime.LocalDateTimeCustomDeserializer;
 import ua.fpv.entity.validation.localdatetime.LocalDateTimeCustomSerializer;
 
@@ -31,7 +32,7 @@ public class FpvReportResponse {
 
     private boolean isLostFPVDueToREB;
 
-    private boolean isOnTargetFPV;
+    private FlightResult flightResult;
 
     private String coordinatesMGRS;
 

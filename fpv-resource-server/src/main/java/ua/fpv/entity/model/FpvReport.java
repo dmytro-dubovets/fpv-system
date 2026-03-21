@@ -44,8 +44,9 @@ public class FpvReport implements Serializable {
     @Column(name = "is_lost_fpv_due_to_reb")
     private boolean isLostFPVDueToREB;
 
-    @Column(name = "is_on_target_fpv")
-    private boolean isOnTargetFPV;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "flight_result")
+    private FlightResult flightResult;
 
     @Column(name = "coordinates_mgrs")
     private String coordinatesMGRS;

@@ -3,7 +3,7 @@
 -- ===============================
 
 create table if not exists fpv_pilot (
-                                         fpv_pilot_id bigserial primary key,
+                                         fpv_pilot_id BIGINT primary key,
                                          first_name varchar(100),
                                          last_name varchar(100),
                                          user_name varchar(100) unique not null,
@@ -29,14 +29,14 @@ create table if not exists fpv_drone (
 );
 
 CREATE TABLE IF NOT EXISTS fpv_report (
-                                          fpv_report_id BIGSERIAL PRIMARY KEY,
-                                          fpv_drone_id BIGINT UNIQUE REFERENCES fpv_drone(fpv_drone_id),
+    fpv_report_id BIGSERIAL PRIMARY KEY,
+    fpv_drone_id BIGINT REFERENCES fpv_drone(fpv_drone_id) ON DELETE CASCADE,
     fpv_pilot_id BIGINT NOT NULL REFERENCES fpv_pilot(fpv_pilot_id),
     date_time_flight TIMESTAMP,
     created_by_username VARCHAR(255),
-    created_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     is_lost_fpv_due_to_reb BOOLEAN DEFAULT FALSE,
-    is_on_target_fpv BOOLEAN DEFAULT FALSE,
+    flight_result VARCHAR(50) NOT NULL,
     coordinates_mgrs VARCHAR(50),
     additional_info TEXT
     );
@@ -52,4 +52,5 @@ CREATE TABLE IF NOT EXISTS refresh_token (
     REFERENCES fpv_pilot(fpv_pilot_id)
     );
 
-CREATE INDEX idx_refresh_token_value ON refresh_token(token);
+CREATE INDEX IF NOT EXISTS idx_refresh_token_value ON refresh_token(token);
+CREATE INDEX IF NOT EXISTS idx_report_flight_result ON fpv_report(flight_result);

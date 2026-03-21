@@ -23,6 +23,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ua.fpv.entity.FpvDroneRequest;
 import ua.fpv.entity.FpvReportCreateRequest;
+import ua.fpv.entity.model.FlightResult;
 import ua.fpv.entity.model.FpvDrone;
 import ua.fpv.entity.model.FpvPilot;
 import ua.fpv.entity.model.PilotRegistry;
@@ -197,24 +198,18 @@ public class FpvReportTelegramBot extends TelegramLongPollingBot {
         // 3. ОБРОБКА РЕЗУЛЬТАТУ
         else if (session.getState() == BotState.AWAITING_RESULT) {
             if (data.equals("HIT")) {
-                session.getReportRequest().setOnTargetFPV(true);
+                session.getReportRequest().setFlightResult(FlightResult.HIT);
                 session.getReportRequest().setLostFPVDueToREB(false);
                 goToVideoUploadState(chatId, session);
             }
             else if (data.equals("MISS")) {
-                session.getReportRequest().setOnTargetFPV(false);
+                session.getReportRequest().setFlightResult(FlightResult.MISS);
                 session.setState(BotState.AWAITING_REB);
                 sendAndTrackInline(chatId, "Чи була втрата через РЕБ?", getYesNoKeyboard("REB"), session);
             }
             else if (data.equals("FIBER_CUT")) {
-                session.getReportRequest().setOnTargetFPV(false);
+                session.getReportRequest().setFlightResult(FlightResult.FIBER_CUT);
                 session.getReportRequest().setLostFPVDueToREB(false);
-
-                String currentInfo = session.getReportRequest().getAdditionalInfo();
-                session.getReportRequest().setAdditionalInfo(
-                        (currentInfo != null ? currentInfo : "") + "\n⚠️ СТАТУС: ОБРИВ ОПТОВОЛОКНА"
-                );
-                log.info("Пілот {} повідомив про ОБРИВ ОПВОЛОКНА", chatId);
                 goToVideoUploadState(chatId, session);
             }
         }

@@ -74,7 +74,9 @@ public class FpvReportServiceImpl implements FpvReportService {
         existingReport.setFpvDrone(fpvDroneService.mapToFpvDroneEntity(request.getFpvDrone()));
         existingReport.setDateTimeFlight(updateDateTimeFlight(request.getDateTimeFlight()));
         existingReport.setLostFPVDueToREB(request.isLostFPVDueToREB());
-        existingReport.setOnTargetFPV(request.isOnTargetFPV());
+
+        existingReport.setFlightResult(request.getFlightResult());
+
         existingReport.setCoordinatesMGRS(request.getCoordinatesMGRS());
         existingReport.setAdditionalInfo(request.getAdditionalInfo());
 
@@ -154,7 +156,7 @@ public class FpvReportServiceImpl implements FpvReportService {
                 .fpvDrone(fpvDroneService.mapToFpvDroneEntity(request.getFpvDrone()))
                 .dateTimeFlight(updateDateTimeFlight(request.getDateTimeFlight()))
                 .isLostFPVDueToREB(request.isLostFPVDueToREB())
-                .isOnTargetFPV(request.isOnTargetFPV())
+                .flightResult(request.getFlightResult())
                 .coordinatesMGRS(request.getCoordinatesMGRS())
                 .additionalInfo(request.getAdditionalInfo())
                 .createdByUsername(finalIdentifier)
@@ -168,7 +170,7 @@ public class FpvReportServiceImpl implements FpvReportService {
                 .pilotUsername(fpvReport.getCreatedByUsername())
                 .dateTimeFlight(updateDateTimeFlight(fpvReport.getDateTimeFlight()))
                 .isLostFPVDueToREB(fpvReport.isLostFPVDueToREB())
-                .isOnTargetFPV(fpvReport.isOnTargetFPV())
+                .flightResult(fpvReport.getFlightResult())
                 .coordinatesMGRS(fpvReport.getCoordinatesMGRS())
                 .additionalInfo(fpvReport.getAdditionalInfo())
                 .build();
@@ -182,12 +184,11 @@ public class FpvReportServiceImpl implements FpvReportService {
     }
 
     public Map<String, Object> getStatistics() {
+        // ОНОВЛЕНО: Статистика тепер базується на Enum, а не на пошуку в тексті
         long total = fpvReportRepository.count();
-        long hits = fpvReportRepository.countByIsOnTargetFPVTrue();
+        long hits = fpvReportRepository.countByFlightResult(ua.fpv.entity.model.FlightResult.HIT);
         long rebLosses = fpvReportRepository.countByIsLostFPVDueToREBTrue();
-
-        // Рахуємо обриви за текстом, який ми самі ж додаємо в боті
-        long fiberCuts = fpvReportRepository.countByAdditionalInfoContaining("Обрив оптоволокна");
+        long fiberCuts = fpvReportRepository.countByFlightResult(ua.fpv.entity.model.FlightResult.FIBER_CUT);
 
         double accuracy = total > 0 ? (hits * 100.0 / total) : 0.0;
 
@@ -195,7 +196,7 @@ public class FpvReportServiceImpl implements FpvReportService {
                 "total", total,
                 "hits", hits,
                 "rebLosses", rebLosses,
-                "fiberCuts", fiberCuts, // Нове поле для бота
+                "fiberCuts", fiberCuts,
                 "accuracy", Math.round(accuracy * 10.0) / 10.0
         );
     }

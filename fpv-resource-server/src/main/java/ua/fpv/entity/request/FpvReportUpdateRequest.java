@@ -11,6 +11,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import ua.fpv.entity.model.FlightResult;
 import ua.fpv.entity.validation.localdatetime.LocalDateTimeCustomDeserializer;
 import ua.fpv.entity.validation.localdatetime.LocalDateTimeCustomSerializer;
 
@@ -35,7 +36,7 @@ public class FpvReportUpdateRequest {
 
     private boolean isLostFPVDueToREB;
 
-    private boolean isOnTargetFPV;
+    private FlightResult flightResult;
 
     @NotBlank(message = "Сoordinates MRGS are required!")
     private String coordinatesMGRS;

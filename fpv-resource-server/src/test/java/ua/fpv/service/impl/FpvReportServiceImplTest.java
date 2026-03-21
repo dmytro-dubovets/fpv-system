@@ -6,14 +6,18 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import ua.fpv.entity.model.FlightResult;
 import ua.fpv.entity.model.FpvDrone;
+import ua.fpv.entity.model.FpvPilot;
 import ua.fpv.entity.model.FpvReport;
 import ua.fpv.entity.request.FpvDroneRequest;
 import ua.fpv.entity.request.FpvReportCreateRequest;
 import ua.fpv.entity.response.FpvReportResponse;
+import ua.fpv.repository.FpvPilotRepository;
 import ua.fpv.repository.FpvReportRepository;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -26,41 +30,75 @@ class FpvReportServiceTest {
     private FpvReportRepository fpvReportRepository;
 
     @Mock
+    private FpvPilotRepository fpvPilotRepository; // Додано мок для пілотів
+
+    @Mock
     private FpvDroneServiceImpl fpvDroneService;
 
     @InjectMocks
     private FpvReportServiceImpl fpvReportService;
 
     @Test
-    @DisplayName("Збереження звіту має викликати метод save у репозиторію")
+    @DisplayName("Збереження звіту має викликати метод save у репозиторію з правильним FlightResult")
     void save_ShouldCallRepositorySave() {
-        FpvDroneRequest fpvDrone = new FpvDroneRequest();
-        fpvDrone.setFpvCraftName("Shrike");
-        fpvDrone.setFpvSerialNumber("1241414343");
-        fpvDrone.setFpvModel(FpvDrone.FpvModel.KAMIKAZE);
+        // 1. Підготовка вхідних даних (Request)
+        FpvDroneRequest droneRequest = FpvDroneRequest.builder()
+                .fpvSerialNumber("1241414343")
+                .fpvCraftName("Shrike")
+                .fpvModel(FpvDrone.FpvModel.KAMIKAZE)
+                .build();
 
-        FpvReportCreateRequest report = new FpvReportCreateRequest();
-        report.setDateTimeFlight(LocalDateTime.now());
-        report.setAdditionalInfo("200");
-        report.setLostFPVDueToREB(false);
-        report.setOnTargetFPV(true);
-        report.setCoordinatesMGRS("36UXV123");
-        report.setFpvDrone(fpvDrone);
+        FpvReportCreateRequest reportRequest = FpvReportCreateRequest.builder()
+                .dateTimeFlight(LocalDateTime.now())
+                .additionalInfo("Ціль уражена")
+                .isLostFPVDueToREB(false)
+                .flightResult(FlightResult.HIT) // ОНОВЛЕНО: використовуємо Enum
+                .coordinatesMGRS("36UXV123")
+                .fpvDrone(droneRequest)
+                .createdByUsername("123456789") // Симулюємо chatId пілота
+                .build();
 
-        FpvReport savedEntity = new FpvReport();
-        savedEntity.setFpvReportId(1L);
-        savedEntity.setCoordinatesMGRS("36UXV123");
+        // 2. Підготовка моків (Behavior)
+        FpvDrone mockDroneEntity = new FpvDrone();
+        mockDroneEntity.setFpvSerialNumber("1241414343");
+        when(fpvDroneService.mapToFpvDroneEntity(any(FpvDroneRequest.class))).thenReturn(mockDroneEntity);
 
-        FpvDrone mockDrone = new FpvDrone();
-        mockDrone.setFpvSerialNumber("1241414343");
-        when(fpvDroneService.mapToFpvDroneEntity(any(FpvDroneRequest.class))).thenReturn(mockDrone);
+        // Мокаємо пошук пілота (повертаємо порожній Optional, щоб спрацювала логіка реєстрації, або готового пілота)
+        FpvPilot mockPilot = FpvPilot.builder().username("123456789").build();
+        when(fpvPilotRepository.findByUsername("123456789")).thenReturn(Optional.of(mockPilot));
+
+        FpvReport savedEntity = FpvReport.builder()
+                .fpvReportId(1L)
+                .flightResult(FlightResult.HIT)
+                .coordinatesMGRS("36UXV123")
+                .build();
 
         when(fpvReportRepository.save(any(FpvReport.class))).thenReturn(savedEntity);
 
-        FpvReportResponse result = fpvReportService.save(report);
+        // 3. Виконання методу
+        FpvReportResponse result = fpvReportService.save(reportRequest);
 
+        // 4. Перевірки (Assertions)
         assertNotNull(result);
         assertEquals(1L, result.getFpvReportId());
+        assertEquals(FlightResult.HIT, result.getFlightResult()); // Перевірка Enum
         assertEquals("36UXV123", result.getCoordinatesMGRS());
+
+        verify(fpvReportRepository, times(1)).save(any(FpvReport.class));
+        verify(fpvPilotRepository, atLeastOnce()).findByUsername("123456789");
+    }
+
+    @Test
+    @DisplayName("Метод статистики має повертати коректні дані")
+    void getStatistics_ShouldReturnCorrectCounts() {
+        when(fpvReportRepository.count()).thenReturn(10L);
+        when(fpvReportRepository.countByFlightResult(FlightResult.HIT)).thenReturn(7L);
+        when(fpvReportRepository.countByFlightResult(FlightResult.FIBER_CUT)).thenReturn(1L);
+
+        var stats = fpvReportService.getStatistics();
+
+        assertEquals(10L, stats.get("total"));
+        assertEquals(7L, stats.get("hits"));
+        assertEquals(1L, stats.get("fiberCuts"));
     }
 }

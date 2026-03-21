@@ -2,6 +2,7 @@ package ua.fpv.repository;
 
 import io.micrometer.common.lang.NonNull;
 import org.springframework.data.jpa.repository.JpaRepository;
+import ua.fpv.entity.model.FlightResult;
 import ua.fpv.entity.model.FpvReport;
 
 import java.util.List;
@@ -26,5 +27,7 @@ public interface FpvReportRepository extends JpaRepository<FpvReport, Long> {
     long countByIsLostFPVDueToREBTrue();
 
     long countByAdditionalInfoContaining(String text);
+
+    long countByFlightResult(FlightResult flightResult);
 
 }
