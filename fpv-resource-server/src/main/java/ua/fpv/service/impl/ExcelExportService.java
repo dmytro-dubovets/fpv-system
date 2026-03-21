@@ -21,20 +21,20 @@ public class ExcelExportService {
 
     public byte[] exportReportsToExcel(List<FpvReportResponse> reports) throws IOException {
 
-
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Reports");
 
-            // 1. Створюємо заголовок (Індекси 0-7)
+            // 1. Створюємо заголовок (Додаємо індекс 8)
             Row header = sheet.createRow(0);
             header.createCell(0).setCellValue("ID");
             header.createCell(1).setCellValue("Дата вильоту");
             header.createCell(2).setCellValue("Серійник");
             header.createCell(3).setCellValue("Модель");
             header.createCell(4).setCellValue("Результат");
-            header.createCell(5).setCellValue("Координати");
-            header.createCell(6).setCellValue("Додатково");
-            header.createCell(7).setCellValue("Пілот");
+            header.createCell(5).setCellValue("РЕБ / Втрата"); // НОВА КОЛОНКА
+            header.createCell(6).setCellValue("Координати");
+            header.createCell(7).setCellValue("Додатково");
+            header.createCell(8).setCellValue("Пілот");
 
             // 2. Заповнюємо дані
             int rowIdx = 1;
@@ -44,12 +44,12 @@ public class ExcelExportService {
                 // ID
                 row.createCell(0).setCellValue(report.getFpvReportId() != null ? report.getFpvReportId() : 0);
 
-                // Дата вильоту (використовуємо toString або форматтер)
+                // Дата
                 row.createCell(1).setCellValue(report.getDateTimeFlight() != null
                         ? report.getDateTimeFlight().format(DATE_FORMATTER)
                         : "Н/Д");
 
-                // Дані про дрон (Серійник та Модель)
+                // Дані про дрон
                 if (report.getFpvDrone() != null) {
                     row.createCell(2).setCellValue(report.getFpvDrone().getFpvSerialNumber());
                     row.createCell(3).setCellValue(report.getFpvDrone().getFpvModel() != null
@@ -59,25 +59,36 @@ public class ExcelExportService {
                     row.createCell(3).setCellValue("-");
                 }
 
-
-                String resultStr = "";
+                // Результат вильоту
+                String resultStr = "Невідомо";
                 if (report.getFlightResult() != null) {
-                    switch (report.getFlightResult()) {
-                        case HIT -> resultStr = "Влучання";
-                        case MISS -> resultStr = "Промах";
-                        case FIBER_CUT -> resultStr = "Обрив";
-                        default -> resultStr = "Невідомо"; // Про всяк випадок
-                    }
+                    resultStr = switch (report.getFlightResult()) {
+                        case HIT -> "Влучання";
+                        case MISS -> "Промах";
+                        case FIBER_CUT -> "Обрив";
+                        default -> "Невідомо";
+                    };
                 }
                 row.createCell(4).setCellValue(resultStr);
 
-                // Координати
-                row.createCell(5).setCellValue(report.getCoordinatesMGRS() != null ? report.getCoordinatesMGRS() : "-");
+                // --- НОВИЙ БЛОК: РЕБ / ВТРАТА ---
+                // Перевіряємо поле lostFPVDueToREB з вашого Response об'єкта
+                String rebStatus = "-";
+                if (report.isLostFPVDueToREB()) {
+                    rebStatus = "ТАК (РЕБ)";
+                } else if (report.getFlightResult() == ua.fpv.entity.model.FlightResult.MISS) {
+                    rebStatus = "Ні";
+                }
+                row.createCell(5).setCellValue(rebStatus);
+                // -------------------------------
 
-                // Додатково
-                row.createCell(6).setCellValue(report.getAdditionalInfo() != null ? report.getAdditionalInfo() : "-");
+                // Координати (індекс змістився на 6)
+                row.createCell(6).setCellValue(report.getCoordinatesMGRS() != null ? report.getCoordinatesMGRS() : "-");
 
-                // Пілот (твоє нове поле)
+                // Додатково (індекс змістився на 7)
+                row.createCell(7).setCellValue(report.getAdditionalInfo() != null ? report.getAdditionalInfo() : "-");
+
+                // Пілот (індекс змістився на 8)
                 String pilotDisplayName = "Н/Д";
                 if (report.getPilotUsername() != null) {
                     try {
@@ -85,14 +96,14 @@ public class ExcelExportService {
                         PilotRegistry pilot = PilotRegistry.getByChatId(cid);
                         pilotDisplayName = pilot.getLastName() + " " + pilot.getFirstName();
                     } catch (NumberFormatException e) {
-                        pilotDisplayName = report.getPilotUsername(); // якщо там не число
+                        pilotDisplayName = report.getPilotUsername();
                     }
                 }
-                row.createCell(7).setCellValue(pilotDisplayName);
+                row.createCell(8).setCellValue(pilotDisplayName);
             }
 
-            // 3. Автоматичне підлаштування ширини для всіх 8 колонок
-            for (int i = 0; i < 8; i++) {
+            // 3. Автоматичне підлаштування ширини для всіх 9 колонок (0-8)
+            for (int i = 0; i <= 8; i++) {
                 sheet.autoSizeColumn(i);
             }
 
