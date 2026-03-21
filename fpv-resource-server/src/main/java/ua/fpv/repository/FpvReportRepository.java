@@ -22,11 +22,7 @@ public interface FpvReportRepository extends JpaRepository<FpvReport, Long> {
 
     long count();
 
-    long countByIsOnTargetFPVTrue();
-
     long countByIsLostFPVDueToREBTrue();
-
-    long countByAdditionalInfoContaining(String text);
 
     long countByFlightResult(FlightResult flightResult);
 

@@ -184,7 +184,6 @@ public class FpvReportServiceImpl implements FpvReportService {
     }
 
     public Map<String, Object> getStatistics() {
-        // ОНОВЛЕНО: Статистика тепер базується на Enum, а не на пошуку в тексті
         long total = fpvReportRepository.count();
         long hits = fpvReportRepository.countByFlightResult(ua.fpv.entity.model.FlightResult.HIT);
         long rebLosses = fpvReportRepository.countByIsLostFPVDueToREBTrue();
